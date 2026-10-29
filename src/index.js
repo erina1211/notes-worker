@@ -10,11 +10,8 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname !== "/notes") {
-      return json({ error: "Not found" }, 404);
-    }
-
-    if (request.method === "POST") {
+    // POST /notes: membuat catatan baru
+    if (url.pathname === "/notes" && request.method === "POST") {
       let data;
 
       try {
@@ -26,10 +23,7 @@ export default {
       const text = String(data?.text ?? "").trim();
 
       if (!text) {
-        return json(
-          { error: "Field 'text' is required" },
-          400
-        );
+        return json({ error: "Field 'text' is required" }, 400);
       }
 
       const item = {
@@ -46,24 +40,47 @@ export default {
       return json(item, 201);
     }
 
-    if (request.method === "GET") {
+    // GET /notes: menampilkan semua catatan
+    if (url.pathname === "/notes" && request.method === "GET") {
       const list = await env.NOTES.list({
         prefix: "note:",
         limit: 50,
       });
 
       const items = await Promise.all(
-        list.keys.map((key) =>
-          env.NOTES.get(key.name, "json")
-        )
+        list.keys.map((key) => env.NOTES.get(key.name, "json"))
       );
 
       return json(items.filter(Boolean));
     }
 
-    return json(
-      { error: "Method not allowed" },
-      405
-    );
+    // GET /notes/:id: menampilkan satu catatan berdasarkan ID
+    if (
+      request.method === "GET" &&
+      url.pathname.startsWith("/notes/")
+    ) {
+      const id = url.pathname.slice("/notes/".length);
+
+      // Pastikan hanya ada satu ID pada path
+      if (!id || id.includes("/")) {
+        return json({ error: "Note not found" }, 404);
+      }
+
+      const item = await env.NOTES.get(`note:${id}`, "json");
+
+      if (!item) {
+        return json({ error: "Note not found" }, 404);
+      }
+
+      return json(item);
+    }
+
+    // Path yang tidak dikenal
+    if (url.pathname !== "/notes") {
+      return json({ error: "Not found" }, 404);
+    }
+
+    // Method yang tidak didukung pada /notes
+    return json({ error: "Method not allowed" }, 405);
   },
 };
