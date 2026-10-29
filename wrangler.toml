@@ -1,0 +1,7 @@
+name = "notes-api-erina"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[[kv_namespaces]]
+binding = "NOTES"
+id = "20bfe027444d4f119477e832a0d2cac9"
